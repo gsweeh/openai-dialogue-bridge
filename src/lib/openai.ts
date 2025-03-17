@@ -40,6 +40,7 @@ export class OpenAIClient {
       baseURL: config.baseUrl.trim().endsWith("/")
         ? config.baseUrl.trim()
         : `${config.baseUrl.trim()}/`,
+      dangerouslyAllowBrowser: true,
     });
   }
 
