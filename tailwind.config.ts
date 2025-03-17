@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -18,6 +19,17 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				sans: [
+					'-apple-system', 
+					'BlinkMacSystemFont', 
+					'San Francisco', 
+					'Segoe UI', 
+					'Roboto', 
+					'Helvetica Neue', 
+					'sans-serif'
+				],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -70,26 +82,66 @@ export default {
 			},
 			keyframes: {
 				'accordion-down': {
-					from: {
-						height: '0'
-					},
-					to: {
-						height: 'var(--radix-accordion-content-height)'
-					}
+					from: { height: '0' },
+					to: { height: 'var(--radix-accordion-content-height)' },
 				},
 				'accordion-up': {
-					from: {
-						height: 'var(--radix-accordion-content-height)'
-					},
-					to: {
-						height: '0'
-					}
+					from: { height: 'var(--radix-accordion-content-height)' },
+					to: { height: '0' },
+				},
+				'pulse-subtle': {
+					'0%, 100%': { opacity: '1' },
+					'50%': { opacity: '0.7' },
+				},
+				'fade-in': {
+					from: { opacity: '0' },
+					to: { opacity: '1' },
+				},
+				'fade-up': {
+					from: { opacity: '0', transform: 'translateY(10px)' },
+					to: { opacity: '1', transform: 'translateY(0)' },
+				},
+				'slide-in-right': {
+					from: { transform: 'translateX(100%)' },
+					to: { transform: 'translateX(0)' },
+				},
+				'slide-in-left': {
+					from: { transform: 'translateX(-100%)' },
+					to: { transform: 'translateX(0)' },
+				},
+				'loading-dots': {
+					'0%': { content: '"."' },
+					'33%': { content: '".."' },
+					'66%': { content: '"..."' },
+					'100%': { content: '"."' },
+				},
+				'typewriter': {
+					from: { width: '0' },
+					to: { width: '100%' },
+				},
+				'caret': {
+					'50%': { opacity: '0' },
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
-			}
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'pulse-subtle': 'pulse-subtle 2s ease-in-out infinite',
+				'fade-in': 'fade-in 0.3s ease-out',
+				'fade-up': 'fade-up 0.5s ease-out',
+				'slide-in-right': 'slide-in-right 0.3s ease-out',
+				'slide-in-left': 'slide-in-left 0.3s ease-out',
+			},
+			backdropFilter: {
+				'none': 'none',
+				'blur': 'blur(20px)',
+			},
+			boxShadow: {
+				'apple': '0 0 0.5px rgba(0, 0, 0, 0.08), 0 0 1px rgba(0, 0, 0, 0.05), 0 4px 8px rgba(0, 0, 0, 0.03), 0 8px 16px rgba(0, 0, 0, 0.03)',
+				'apple-dark': '0 0 0.5px rgba(255, 255, 255, 0.06), 0 4px 8px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.2)',
+				'apple-hover': '0 0 0.5px rgba(0, 0, 0, 0.08), 0 0 1px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.05), 0 8px 20px rgba(0, 0, 0, 0.05)',
+				'apple-active': '0 0 0.5px rgba(0, 0, 0, 0.08), 0 0 1px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.03), 0 4px 12px rgba(0, 0, 0, 0.03)',
+			},
 		}
 	},
 	plugins: [require("tailwindcss-animate")],
