@@ -32,31 +32,42 @@ export interface GenerateStreamParams {
 }
 
 export class OpenAIClient {
-  private client: OpenAI;
+  private apiKey: string;
+  private baseUrl: string;
+  private apiBaseUrl: string = '/api'; // URL to our proxy server
 
   constructor(config: { apiKey: string; baseUrl: string }) {
-    this.client = new OpenAI({
-      apiKey: config.apiKey,
-      baseURL: config.baseUrl.trim().endsWith("/")
-        ? config.baseUrl.trim()
-        : `${config.baseUrl.trim()}/`,
-      dangerouslyAllowBrowser: true,
-    });
+    this.apiKey = config.apiKey;
+    this.baseUrl = config.baseUrl.trim().endsWith("/")
+      ? config.baseUrl.trim()
+      : `${config.baseUrl.trim()}/`;
   }
 
   async getModels(): Promise<OpenAIModel[]> {
     try {
-      const response = await this.client.models.list();
-      return response.data || [];
+      const response = await fetch(`${this.apiBaseUrl}/models`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          apiKey: this.apiKey,
+          baseUrl: this.baseUrl,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch models');
+      }
+
+      const data = await response.json();
+      return data.models || [];
     } catch (error) {
       console.error("Error fetching models:", error);
       
-      // Check if it's a CORS-related error
-      if (error instanceof Error && error.message.includes('NetworkError') || 
-          error instanceof Error && error.message.includes('Failed to fetch')) {
-        toast.error(
-          "CORS error: The API server doesn't allow requests from your browser. Make sure your API endpoint supports CORS or use a compatible endpoint."
-        );
+      if (error instanceof Error) {
+        toast.error(error.message);
       } else {
         toast.error("Failed to fetch models. Please check your API settings.");
       }
@@ -72,21 +83,53 @@ export class OpenAIClient {
     onError: (error: Error) => void
   ): Promise<void> {
     try {
-      const stream = await this.client.chat.completions.create({
-        model: params.model,
-        messages: params.messages,
-        temperature: params.temperature ?? 0.7,
-        max_tokens: params.max_tokens,
-        top_p: params.top_p ?? 1,
-        frequency_penalty: params.frequency_penalty ?? 0,
-        presence_penalty: params.presence_penalty ?? 0,
-        stream: true,
+      const response = await fetch(`${this.apiBaseUrl}/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          apiKey: this.apiKey,
+          baseUrl: this.baseUrl,
+          params,
+        }),
       });
 
-      for await (const chunk of stream) {
-        const content = chunk.choices[0]?.delta?.content || "";
-        if (content) {
-          onChunk(content);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Stream error');
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('Response body is not readable');
+      }
+
+      // Process the stream
+      const decoder = new TextDecoder();
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n\n').filter(line => line.trim().startsWith('data: '));
+        
+        for (const line of lines) {
+          try {
+            const jsonStr = line.replace('data: ', '');
+            const data = JSON.parse(jsonStr);
+            
+            if (data.done) {
+              onDone();
+              break;
+            }
+            
+            if (data.content) {
+              onChunk(data.content);
+            }
+          } catch (e) {
+            console.error('Error parsing SSE data:', e);
+          }
         }
       }
       
@@ -94,17 +137,8 @@ export class OpenAIClient {
     } catch (error) {
       console.error("Stream error:", error);
       
-      // Provide more specific error messages for common issues
       if (error instanceof Error) {
-        if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
-          onError(new Error("CORS error: The API server doesn't allow requests from your browser. Make sure your API endpoint supports CORS or use a compatible endpoint."));
-        } else if (error.message.includes('401')) {
-          onError(new Error("Authentication error: Your API key may be invalid or expired."));
-        } else if (error.message.includes('429')) {
-          onError(new Error("Rate limit exceeded: Too many requests. Try again later."));
-        } else {
-          onError(error);
-        }
+        onError(error);
       } else {
         onError(new Error(String(error)));
       }
