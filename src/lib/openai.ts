@@ -50,7 +50,17 @@ export class OpenAIClient {
       return response.data || [];
     } catch (error) {
       console.error("Error fetching models:", error);
-      toast.error("Failed to fetch models. Please check your API settings.");
+      
+      // Check if it's a CORS-related error
+      if (error instanceof Error && error.message.includes('NetworkError') || 
+          error instanceof Error && error.message.includes('Failed to fetch')) {
+        toast.error(
+          "CORS error: The API server doesn't allow requests from your browser. Make sure your API endpoint supports CORS or use a compatible endpoint."
+        );
+      } else {
+        toast.error("Failed to fetch models. Please check your API settings.");
+      }
+      
       return [];
     }
   }
@@ -83,7 +93,21 @@ export class OpenAIClient {
       onDone();
     } catch (error) {
       console.error("Stream error:", error);
-      onError(error instanceof Error ? error : new Error(String(error)));
+      
+      // Provide more specific error messages for common issues
+      if (error instanceof Error) {
+        if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
+          onError(new Error("CORS error: The API server doesn't allow requests from your browser. Make sure your API endpoint supports CORS or use a compatible endpoint."));
+        } else if (error.message.includes('401')) {
+          onError(new Error("Authentication error: Your API key may be invalid or expired."));
+        } else if (error.message.includes('429')) {
+          onError(new Error("Rate limit exceeded: Too many requests. Try again later."));
+        } else {
+          onError(error);
+        }
+      } else {
+        onError(new Error(String(error)));
+      }
     }
   }
 }
